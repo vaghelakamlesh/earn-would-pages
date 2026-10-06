@@ -8,7 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
   // Same two values as web/config.js
-  const sb = supabase.createClient("https://YOUR-PROJECT-REF.supabase.co", "YOUR-ANON-PUBLIC-KEY");
+  const sb = supabase.createClient("https://gucqvvkyziaixkkzolmx.supabase.co", "sb_publishable_PCXgIpT0VQYXYPfPH_bpeQ_tZNUjaCA");
   sb.auth.onAuthStateChange((event) => {
     if (event === "PASSWORD_RECOVERY") { document.getElementById("box").hidden = false; document.getElementById("msg").textContent = "Choose a new password."; }
   });
