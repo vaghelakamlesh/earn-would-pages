@@ -1,1 +1,0 @@
-earn would page
