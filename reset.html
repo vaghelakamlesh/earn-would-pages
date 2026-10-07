@@ -1,23 +1,64 @@
-<!doctype html><html lang="en"><head><title>Reset password - Earn Would</title><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{font:16px/1.6 system-ui,sans-serif;max-width:640px;margin:0 auto;padding:24px;color:#1b2430}h1{font-size:26px}h2{font-size:18px;margin-top:28px}input,button{font:inherit;padding:11px 14px;border-radius:10px;border:1px solid #bcc6d0;width:100%;margin:6px 0}button{background:#f4b740;border:0;font-weight:700}</style></head><body>
-<h1>Set a new password</h1>
-<p id="msg">Open this page from the link in your reset email.</p>
-<div id="box" hidden>
-  <input id="pw" type="password" placeholder="New password (min 8 characters)" autocomplete="new-password">
-  <button id="go">Save password</button>
+<!doctype html><html lang="en"><head><title>Reset password - Earn Would</title><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
+  *{box-sizing:border-box}body{margin:0;background:#0f1720;color:#e8eef3;font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+  .card{width:100%;max-width:420px;background:#17222d;border:1px solid #2a3a4a;border-radius:24px;padding:28px 22px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.35)}
+  .card img.logo{width:120px;height:120px;border-radius:26px;display:block;margin:0 auto 14px}
+  h1{font-size:22px;margin:0 0 8px}p{color:#8da0b0;margin:0 0 14px;font-size:15px}
+  .ok{color:#4cc9a0}.err{color:#ef6b6b}
+  .fld{position:relative;margin-bottom:12px;text-align:left}
+  input{width:100%;background:#0a1020;color:#e8eef3;border:1px solid #2a3a4a;border-radius:14px;padding:15px 48px 15px 16px;font:inherit}
+  input:focus{outline:2px solid #f4b740;outline-offset:1px}
+  .eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:0;color:#8da0b0;padding:10px;font-size:13px;width:auto;cursor:pointer}
+  button.main{width:100%;border:0;border-radius:14px;padding:15px;background:#f4b740;color:#1b1400;font:700 16px system-ui;cursor:pointer}
+  button.main:disabled{opacity:.5}
+  a{color:#f4b740;text-decoration:none}.small{font-size:13px;margin-top:18px}
+</style></head><body>
+<div class="card">
+  <img class="logo" src="logo.png" alt="Earn Would">
+  <h1 id="ttl">Reset your password</h1>
+  <p id="msg">Checking your reset link…</p>
+  <form id="box" hidden novalidate>
+    <div class="fld"><input id="pw" type="password" placeholder="New password (min 8 characters)" autocomplete="new-password"><button type="button" class="eye" data-for="pw">Show</button></div>
+    <div class="fld"><input id="pw2" type="password" placeholder="Confirm new password" autocomplete="new-password"><button type="button" class="eye" data-for="pw2">Show</button></div>
+    <button class="main" id="go" type="submit">Save new password</button>
+  </form>
+  <p class="small"><a href="privacy.html">Privacy Policy</a></p>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
-  // Same two values as web/config.js
-  const sb = supabase.createClient("https://gucqvvkyziaixkkzolmx.supabase.co", "sb_publishable_PCXgIpT0VQYXYPfPH_bpeQ_tZNUjaCA");
-  sb.auth.onAuthStateChange((event) => {
-    if (event === "PASSWORD_RECOVERY") { document.getElementById("box").hidden = false; document.getElementById("msg").textContent = "Choose a new password."; }
+  // PASTE the same two values you used in the old reset.html / web/config.js:
+  const SUPABASE_URL = "https://gucqvvkyziaixkkzolmx.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_PCXgIpT0VQYXYPfPH_bpeQ_tZNUjaCA";
+
+  const hash = new URLSearchParams(location.hash.slice(1));      // read BEFORE the client clears it
+  const hadError = hash.get('error') || hash.get('error_code');
+  const isRecovery = hash.get('type') === 'recovery' || hash.has('access_token');
+  const $ = id => document.getElementById(id);
+  const say = (t, cls) => { $('msg').textContent = t; $('msg').className = cls || ''; };
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  function showForm() { $('box').hidden = false; $('ttl').textContent = 'Set a new password'; say('Choose a new password for your account.'); }
+
+  if (hadError) say('This reset link has expired or was already used. Go back to the app and request a new one.', 'err');
+  else if (!isRecovery) say('Open this page from the link in your reset email.');
+  else {
+    sb.auth.onAuthStateChange(ev => { if (ev === 'PASSWORD_RECOVERY') showForm(); });
+    setTimeout(async () => { if ($('box').hidden) { const { data } = await sb.auth.getSession(); if (data.session) showForm(); else say('This reset link is not valid. Request a new one in the app.', 'err'); } }, 2500);
+  }
+
+  document.querySelectorAll('.eye').forEach(b => b.onclick = () => {
+    const i = $(b.dataset.for); const show = i.type === 'password'; i.type = show ? 'text' : 'password'; b.textContent = show ? 'Hide' : 'Show';
   });
-  document.getElementById("go").onclick = async () => {
-    const pw = document.getElementById("pw").value;
-    if (pw.length < 8) return alert("Use at least 8 characters.");
-    const { error } = await sb.auth.updateUser({ password: pw });
-    document.getElementById("msg").textContent = error ? "Could not save: " + error.message : "Password updated. Go back to the app and log in.";
-    if (!error) document.getElementById("box").hidden = true;
+
+  $('box').onsubmit = async e => {
+    e.preventDefault();
+    const a = $('pw').value, b = $('pw2').value;
+    if (a.length < 8) return say('Password must be at least 8 characters.', 'err');
+    if (a !== b) return say('Passwords do not match.', 'err');
+    $('go').disabled = true;
+    const { error } = await sb.auth.updateUser({ password: a });
+    if (error) { $('go').disabled = false; return say(/different|same/i.test(error.message) ? 'Choose a password you have not used before.' : 'Could not save the password. Request a new link and try again.', 'err'); }
+    await sb.auth.signOut();
+    $('box').hidden = true; $('ttl').textContent = 'Password updated'; say('Done! Open the Earn Would app and log in with your new password.', 'ok');
   };
 </script>
 </body></html>
